@@ -2,6 +2,7 @@ package jira
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 
 type Client interface {
 	Sync(project string) error
+	CreateCard(project, prompt string) (string, error)
 }
 
 type grpcClient struct {
@@ -37,4 +39,23 @@ func (g *grpcClient) Sync(project string) error {
 		ProjectKey: project,
 	})
 	return err
+}
+
+func (g *grpcClient) CreateCard(project, prompt string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	fmt.Println("Creating card with project:", project, "and prompt:", prompt)
+
+	resp, err := g.client.CreateCard(ctx, &pb.CreateCardRequest{
+		ProjectKey: project,
+		Prompt:     prompt,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp == nil {
+		return "", fmt.Errorf("received nil response from server")
+	}
+	return resp.IssueKey, nil
 }

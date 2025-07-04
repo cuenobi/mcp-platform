@@ -3,8 +3,8 @@ module github.com/cuenobi/mcp-platform/mcp-server-jira
 go 1.23.9
 
 require (
-	github.com/cuenobi/mcp-platform/shared/proto v0.0.0-20250704071713-180a9cb99ca0
 	github.com/cuenobi/mcp-platform/shared/proto/gen v0.0.0
+	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.9.1
 	google.golang.org/grpc v1.73.0
 )

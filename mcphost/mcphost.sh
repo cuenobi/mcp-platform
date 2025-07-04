@@ -8,4 +8,4 @@ if [ ! -f "./mcphost" ]; then
   go build -o mcphost
 fi
 
-./mcphost jira sync --project "$1"
+./mcphost "$@"
