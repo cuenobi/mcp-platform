@@ -1,45 +1,28 @@
-// Protocol Buffer definition for Jira service
-// This file defines the gRPC service and message types for Jira integration
-
 syntax = "proto3";
 
-// Go package options
 option go_package = "../gen;jira";
 
-// Package declaration
 package jira;
 
-// JiraService provides gRPC endpoints for Jira operations
 service JiraService {
-  // SyncIssues synchronizes issues from a Jira project
   rpc SyncIssues(SyncRequest) returns (SyncResponse);
-  
-  // CreateCard creates a new Jira card based on a prompt
   rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
 }
 
-// Request messages
-
-// SyncRequest contains parameters for synchronizing Jira issues
 message SyncRequest {
-  string project_key = 1; // Jira project key (e.g., "TEST", "PROJ")
+  string project_key = 1;
 }
 
-// CreateCardRequest contains parameters for creating a new Jira card
 message CreateCardRequest {
-  string project_key = 1; // Jira project key where the card will be created
-  string prompt = 2;       // Natural language prompt describing the card to create
+  string project_key = 1;
+  string prompt = 2;
 }
 
-// Response messages
-
-// SyncResponse contains the result of a sync operation
 message SyncResponse {
-  string status = 1; // Status of the sync operation (e.g., "synced", "failed")
+  string status = 1;
 }
 
-// CreateCardResponse contains the result of creating a new card
 message CreateCardResponse {
-  string issue_key = 1; // The key of the created Jira issue (e.g., "TEST-123")
-  string status = 2;    // Status of the creation operation (e.g., "created", "failed")
+  string issue_key = 1;
+  string status = 2;
 } 

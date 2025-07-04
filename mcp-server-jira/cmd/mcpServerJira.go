@@ -17,7 +17,6 @@ type server struct {
 
 func (s *server) SyncIssues(ctx context.Context, req *pb.SyncRequest) (*pb.SyncResponse, error) {
 	log.Printf("Syncing project: %s", req.ProjectKey)
-	// ตัวอย่างทำงานจริง
 	time.Sleep(time.Second)
 	return &pb.SyncResponse{Status: "synced"}, nil
 }
