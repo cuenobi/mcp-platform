@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	pb "github.com/cuenobi/mcp-platform/shared/proto/gen"
@@ -11,7 +12,6 @@ import (
 	"google.golang.org/grpc"
 
 	jira "github.com/cuenobi/mcp-platform/mcp-server-jira/internal"
-	llm "github.com/cuenobi/mcp-platform/mcp-server-jira/internal"
 )
 
 type server struct {
@@ -27,12 +27,20 @@ func (s *server) SyncIssues(ctx context.Context, req *pb.SyncRequest) (*pb.SyncR
 func (s *server) CreateCard(ctx context.Context, req *pb.CreateCardRequest) (*pb.CreateCardResponse, error) {
 	log.Printf("CreateCard called with prompt: %s", req.Prompt)
 
-	idea, err := llm.GenerateIssueIdea(req.Prompt)
+	issueIdea, err := jira.GenerateIssueIdea(req.Prompt)
 	if err != nil {
 		return nil, err
 	}
 
-	issueKey, err := jira.CreateIssue(req.ProjectKey, idea.Title, idea.Description)
+	issueIdea.Title = strings.ReplaceAll(issueIdea.Title, "\n", " ")
+	if len(issueIdea.Title) > 255 {
+		issueIdea.Title = issueIdea.Title[:255]
+	}
+	if len(issueIdea.Description) > 1000 {
+		issueIdea.Description = issueIdea.Description[:1000]
+	}
+
+	issueKey, err := jira.CreateIssue(req.ProjectKey, issueIdea.Title, issueIdea.Description)
 	if err != nil {
 		return nil, err
 	}

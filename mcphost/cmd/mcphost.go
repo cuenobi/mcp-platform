@@ -37,7 +37,7 @@ var jiraCreateCmd = &cobra.Command{
 			fmt.Printf("error creating card: %v\n", err)
 			return
 		}
-		fmt.Printf("✅ Created issue: %s\n", issueKey)
+		fmt.Printf("Created issue: %s\n", issueKey)
 	},
 }
 
