@@ -6,8 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -44,8 +45,12 @@ func GenerateIssueIdea(prompt string) (*IssueIdea, error) {
 	fmt.Println("Generating issue idea with prompt (Ollama):", prompt)
 
 	payload := map[string]interface{}{
-		"model":  "llama3",
-		"prompt": prompt + "\n\nJIRA requirements:\n1. Title must be less than 255 characters.\n2. Description must be less than 1000 characters.\n3. Summary must be less than 255 characters.\n\nPlease respond in this format:\nTitle: <your title here>\nDescription:\n<your description here>",
+		"model": "llama3",
+		"prompt": prompt + "\n\nJIRA requirements:\n" +
+			"1. Title must be less than 255 characters.\n" +
+			"2. Description must be less than 1000 characters.\n" +
+			"3. Summary must be less than 255 characters.\n\n" +
+			"Please respond in this format:\nTitle: <your title here>\nDescription:\n<your description here>",
 	}
 
 	payloadBytes, err := json.Marshal(payload)
@@ -71,7 +76,7 @@ func GenerateIssueIdea(prompt string) (*IssueIdea, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		bodyBytes, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("Ollama API returned status %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -99,8 +104,40 @@ func GenerateIssueIdea(prompt string) (*IssueIdea, error) {
 
 	content := fullResponse.String()
 
+	// แยก Title กับ Description ออกจาก content
+	title := extractTitle(content)
+	description := extractDescription(content)
+
+	// ตัดความยาว title ไม่เกิน 255 ตัวอักษร และลบ newline
+	title = sanitizeTitle(title)
+
 	return &IssueIdea{
-		Title:       content,
-		Description: content,
+		Title:       title,
+		Description: description,
 	}, nil
+}
+
+func extractTitle(content string) string {
+	re := regexp.MustCompile(`(?i)title:\s*(.+)`)
+	matches := re.FindStringSubmatch(content)
+	if len(matches) >= 2 {
+		return strings.TrimSpace(matches[1])
+	}
+	return "Untitled"
+}
+
+func extractDescription(content string) string {
+	parts := strings.SplitN(content, "Description:", 2)
+	if len(parts) == 2 {
+		return strings.TrimSpace(parts[1])
+	}
+	return "No description provided"
+}
+
+func sanitizeTitle(title string) string {
+	title = strings.ReplaceAll(title, "\n", " ")
+	if len(title) > 255 {
+		title = title[:255]
+	}
+	return title
 }
