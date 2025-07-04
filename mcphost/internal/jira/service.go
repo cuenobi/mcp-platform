@@ -1,12 +1,20 @@
 package jira
 
+import "os"
+
 type Service struct {
 	client Client
 }
 
 func NewService() *Service {
+	// Use environment variable for Docker deployment, fallback to localhost
+	addr := os.Getenv("MCP_SERVER_JIRA_ADDR")
+	if addr == "" {
+		addr = "localhost:50051"
+	}
+
 	return &Service{
-		client: NewGRPCClient("localhost:50051"), // TODO: get from config
+		client: NewGRPCClient(addr),
 	}
 }
 

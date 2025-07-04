@@ -1,0 +1,82 @@
+services:
+  # Ollama service for AI generation
+  ollama:
+    image: ollama/ollama:latest
+    container_name: mcp-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "pgrep", "ollama"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # MCP Server for Jira
+  mcp-server-jira:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp-server-jira
+    container_name: mcp-server-jira
+    ports:
+      - "50051:50051"
+    environment:
+      - JIRA_BASE_URL=${JIRA_BASE_URL}
+      - JIRA_EMAIL=${JIRA_EMAIL}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN}
+      - JIRA_PROJECT_KEY=${JIRA_PROJECT_KEY}
+      - JIRA_BOARD_ID=${JIRA_BOARD_ID}
+      - OLLAMA_BASE_URL=http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "50051"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-gateway
+    container_name: mcp-api-gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # MCP Host (Client)
+  mcphost:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcphost
+    container_name: mcp-host
+    depends_on:
+      mcp-server-jira:
+        condition: service_healthy
+    networks:
+      - mcp-network
+    environment:
+      - MCP_SERVER_JIRA_ADDR=mcp-server-jira:50051
+    stdin_open: true
+    tty: true
+
+volumes:
+  ollama_data:
+
+networks:
+  mcp-network:
+    driver: bridge 
