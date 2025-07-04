@@ -1,0 +1,18 @@
+// proto/jira.proto
+syntax = "proto3";
+
+option go_package = "./proto;jira";
+
+package jira;
+
+service JiraService {
+  rpc SyncIssues(SyncRequest) returns (SyncResponse);
+}
+
+message SyncRequest {
+  string project_key = 1;
+}
+
+message SyncResponse {
+  string status = 1;
+}
