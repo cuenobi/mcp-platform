@@ -18,7 +18,7 @@ services:
   mcp-server-jira:
     build:
       context: .
-      dockerfile: Dockerfile.mcp-server-jira
+      dockerfile: ./mcp-server-jira/Dockerfile
     container_name: mcp-server-jira
     ports:
       - "50051:50051"
@@ -43,7 +43,7 @@ services:
   api-gateway:
     build:
       context: .
-      dockerfile: Dockerfile.api-gateway
+      dockerfile: ./api-gateway/Dockerfile
     container_name: mcp-api-gateway
     ports:
       - "8080:8080"
@@ -58,7 +58,7 @@ services:
   mcphost:
     build:
       context: .
-      dockerfile: Dockerfile.mcphost
+      dockerfile: ./mcphost/Dockerfile
     container_name: mcp-host
     depends_on:
       mcp-server-jira:
