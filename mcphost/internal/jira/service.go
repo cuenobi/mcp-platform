@@ -7,7 +7,6 @@ type Service struct {
 }
 
 func NewService() *Service {
-	// Use environment variable for Docker deployment, fallback to localhost
 	addr := os.Getenv("MCP_SERVER_JIRA_ADDR")
 	if addr == "" {
 		addr = "localhost:50051"
@@ -28,4 +27,8 @@ func (s *Service) CreateCard(project, prompt string) (string, error) {
 		return "", err
 	}
 	return issueKey, nil
+}
+
+func (s *Service) Message(prompt string) (string, error) {
+	return s.client.Message(prompt)
 }

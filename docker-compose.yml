@@ -1,5 +1,4 @@
 services:
-  # Ollama service for AI generation
   ollama:
     image: ollama/ollama:latest
     container_name: mcp-ollama
@@ -16,7 +15,6 @@ services:
       retries: 10
       start_period: 60s
 
-  # MCP Server for Jira
   mcp-server-jira:
     build:
       context: .
@@ -42,7 +40,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # API Gateway
   api-gateway:
     build:
       context: .
@@ -58,7 +55,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # MCP Host (Client)
   mcphost:
     build:
       context: .

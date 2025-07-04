@@ -11,8 +11,7 @@ import (
 )
 
 func CreateIssue(projectKey, title, description string) (string, error) {
-	fmt.Println("-------------- mcp-server-jira create issue start ------------------")
-	fmt.Println("Creating issue with project:", projectKey, "and title:", title, "and description:", description)
+	fmt.Println("-------------- MCP Server Jira Create Issue ------------------")
 	jiraBaseURL := os.Getenv("JIRA_BASE_URL")
 	jiraEmail := os.Getenv("JIRA_EMAIL")
 	jiraToken := os.Getenv("JIRA_API_TOKEN")
@@ -35,7 +34,6 @@ func CreateIssue(projectKey, title, description string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal issue payload: %w", err)
 	}
-	// Debug: log the JSON payload before sending the request
 	fmt.Println("Jira CreateIssue JSON payload:", string(body))
 
 	req, err := http.NewRequest("POST", jiraBaseURL+"/rest/api/2/issue", bytes.NewBuffer(body))
@@ -54,7 +52,6 @@ func CreateIssue(projectKey, title, description string) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		// Read and log full response body for debugging
 		respBody, _ := io.ReadAll(resp.Body)
 		fmt.Printf("Jira API returned status: %s\nResponse body: %s\n", resp.Status, string(respBody))
 		return "", fmt.Errorf("Jira API returned status: %s", resp.Status)
@@ -67,6 +64,6 @@ func CreateIssue(projectKey, title, description string) (string, error) {
 		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	fmt.Println("-------------- mcp-server-jira create issue end ------------------")
+	fmt.Println("-------------- MCP Server Jira Create Issue End ------------------")
 	return result.Key, nil
 }

@@ -19,31 +19,114 @@ type IssueIdea struct {
 	Description string
 }
 
-// func GenerateIssueIdea(prompt string) (*IssueIdea, error) {
-// 	fmt.Println("Generating issue idea with prompt:", prompt)
-// 	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
+type OllamaResponse struct {
+	Response string `json:"response"`
+}
 
-// 	resp, err := client.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
-// 		Model: openai.GPT3Dot5Turbo,
-// 		Messages: []openai.ChatCompletionMessage{
-// 			{Role: "system", Content: "You are a project manager who is good at writing Jira issues"},
-// 			{Role: "user", Content: fmt.Sprintf("Help write Jira issue from command: %s", prompt)},
-// 		},
-// 	})
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func ReceivePrompt(prompt string) (string, error) {
+	decisionPrompt := fmt.Sprintf(`You are a routing assistant. I will give you a message, and you need to decide how to handle it.
 
-// 	content := resp.Choices[0].Message.Content
+Answer "mcp" if the message requires any of these actions:
+- Creating Jira cards/issues/tickets
+- Updating Jira issues
+- Syncing with Jira
+- Any task management or project management actions
+- Technical implementation tasks that need to be tracked
 
-// 	return &IssueIdea{
-// 		Title:       content,
-// 		Description: content,
-// 	}, nil
-// }
+Answer "local" if the message is:
+- Simple greetings (Hello, Hi, สวัสดี, etc.)
+- General questions
+- Casual conversation
+- Requests for information only
+
+User message: %s
+
+Your answer (mcp or local):`, prompt)
+
+	fmt.Printf("🔍 DEBUG: Sending decision prompt to Ollama: %s\n", decisionPrompt)
+
+	response, err := callOllama(decisionPrompt)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("🔍 DEBUG: Ollama response: '%s'\n", response)
+
+	cleaned := strings.ToLower(strings.TrimSpace(response))
+	fmt.Printf("🔍 DEBUG: Cleaned response: '%s'\n", cleaned)
+
+	if strings.Contains(cleaned, "mcp") {
+		fmt.Printf("🔍 DEBUG: Routing to MCP server\n")
+		return talkToMCPServer(prompt)
+	} else if strings.Contains(cleaned, "local") {
+		fmt.Printf("🔍 DEBUG: Routing to local handler\n")
+		return talkLocally(prompt)
+	} else {
+		fmt.Printf("🔍 DEBUG: No clear routing decision, defaulting to local\n")
+		return talkLocally(prompt)
+	}
+}
+
+func callOllama(prompt string) (string, error) {
+	payload := map[string]interface{}{
+		"model":  "llama3",
+		"prompt": prompt,
+		"stream": false,
+	}
+
+	jsonPayload, _ := json.Marshal(payload)
+
+	ollamaURL := os.Getenv("OLLAMA_BASE_URL")
+	if ollamaURL == "" {
+		ollamaURL = "http://localhost:11434"
+	}
+
+	resp, err := http.Post(ollamaURL+"/api/generate", "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var result OllamaResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	return result.Response, nil
+}
+
+func talkToMCPServer(prompt string) (string, error) {
+	lowerPrompt := strings.ToLower(prompt)
+	if strings.Contains(lowerPrompt, "create") && (strings.Contains(lowerPrompt, "card") || strings.Contains(lowerPrompt, "issue") || strings.Contains(lowerPrompt, "ticket") || strings.Contains(lowerPrompt, "jira")) {
+		fmt.Println("Detected Jira card creation request via message command")
+
+		projectKey := os.Getenv("JIRA_PROJECT_KEY")
+		if projectKey == "" {
+			projectKey = "PROJ"
+		}
+
+		issueIdea, err := GenerateIssueIdea(prompt)
+		if err != nil {
+			return "", fmt.Errorf("failed to generate issue idea: %w", err)
+		}
+
+		issueKey, err := CreateIssue(projectKey, issueIdea.Title, issueIdea.Description)
+		if err != nil {
+			return "", fmt.Errorf("failed to create Jira issue: %w", err)
+		}
+
+		return fmt.Sprintf("✅ Created Jira card: %s\nTitle: %s\nDescription: %s", issueKey, issueIdea.Title, issueIdea.Description), nil
+	}
+
+	return "Sending to MCP server: " + prompt, nil
+}
+
+func talkLocally(prompt string) (string, error) {
+	return "Answer locally: " + prompt, nil
+}
 
 func GenerateIssueIdea(prompt string) (*IssueIdea, error) {
-	fmt.Println("Generating issue idea with prompt (Ollama):", prompt)
+	fmt.Println("-------------- MCP Server Jira Generate Issue Idea ------------------")
 
 	payload := map[string]interface{}{
 		"model": "llama3",
@@ -62,12 +145,11 @@ func GenerateIssueIdea(prompt string) (*IssueIdea, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	// Use environment variable for Docker deployment, fallback to localhost
 	ollamaURL := os.Getenv("OLLAMA_BASE_URL")
 	if ollamaURL == "" {
 		ollamaURL = "http://localhost:11434"
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", ollamaURL+"/api/generate", bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -111,11 +193,9 @@ func GenerateIssueIdea(prompt string) (*IssueIdea, error) {
 
 	content := fullResponse.String()
 
-	// แยก Title กับ Description ออกจาก content
 	title := extractTitle(content)
 	description := extractDescription(content)
 
-	// ตัดความยาว title ไม่เกิน 255 ตัวอักษร และลบ newline
 	title = sanitizeTitle(title)
 
 	return &IssueIdea{

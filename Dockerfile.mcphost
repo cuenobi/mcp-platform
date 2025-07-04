@@ -1,33 +1,24 @@
-# Build stage
 FROM golang:1.23.9-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod files
 COPY mcphost/go.mod mcphost/go.sum ./mcphost/
 COPY shared/proto/gen/go.mod shared/proto/gen/go.sum ./shared/proto/gen/
 
-# Copy shared proto generated files
 COPY shared/proto/gen/ ./shared/proto/gen/
 
-# Download dependencies
 RUN cd mcphost && go mod download
 
-# Copy source code
 COPY mcphost/ ./mcphost/
 
-# Build the application
 RUN cd mcphost && go build -o bin/mcphost main.go
 
-# Runtime stage
 FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the binary from builder stage
 COPY --from=builder /app/mcphost/bin/mcphost .
 
-# This service acts as a client, so we'll keep it running
 CMD ["tail", "-f", "/dev/null"] 

@@ -7,6 +7,7 @@ package jira;
 service JiraService {
   rpc SyncIssues(SyncRequest) returns (SyncResponse);
   rpc CreateCard(CreateCardRequest) returns (CreateCardResponse);
+  rpc Message(MessageRequest) returns (MessageResponse);
 }
 
 message SyncRequest {
@@ -26,3 +27,11 @@ message CreateCardResponse {
   string issue_key = 1;
   string status = 2;
 } 
+
+message MessageRequest {
+  string prompt = 1;
+}
+
+message MessageResponse {
+  string message = 1;
+}

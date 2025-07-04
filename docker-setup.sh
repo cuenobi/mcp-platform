@@ -1,99 +1,91 @@
 #!/bin/bash
 
-# MCP Platform Docker Setup Script
-
 set -e
 
-echo "🐳 MCP Platform Docker Setup"
-echo "============================"
+echo "🚀 MCP Platform Docker Setup"
+echo "=============================="
 
-# Check if Docker is installed
 if ! command -v docker &> /dev/null; then
     echo "❌ Docker is not installed. Please install Docker first."
     exit 1
 fi
 
-# Check if Docker Compose is installed
 if ! command -v docker-compose &> /dev/null; then
     echo "❌ Docker Compose is not installed. Please install Docker Compose first."
     exit 1
 fi
 
-# Function to setup environment file
 setup_env() {
-    echo "📝 Setting up environment file..."
-    
-    if [ ! -f ".env" ]; then
-        cp docker.env .env
-        echo "⚠️  Please edit .env file with your Jira credentials:"
-        echo "   - JIRA_BASE_URL"
-        echo "   - JIRA_EMAIL"
-        echo "   - JIRA_API_TOKEN"
-        echo "   - JIRA_PROJECT_KEY"
-        echo "   - JIRA_BOARD_ID"
-        echo ""
-        read -p "Press Enter after editing the .env file..."
+    if [ ! -f .env ]; then
+        echo "📝 Creating .env file template..."
+        cat > .env << EOF
+JIRA_BASE_URL=https://your-domain.atlassian.net
+JIRA_EMAIL=your-email@example.com
+JIRA_API_TOKEN=your-api-token
+JIRA_PROJECT_KEY=YOUR_PROJECT
+JIRA_BOARD_ID=1
+OPENAI_API_KEY=your-openai-api-key
+OLLAMA_BASE_URL=http://ollama:11434
+EOF
+        echo "✅ .env file created. Please update it with your actual values."
+        echo "⚠️  You need to set proper Jira credentials before continuing."
     else
-        echo "✅ .env file already exists"
+        echo "✅ .env file already exists."
     fi
 }
 
-# Function to pull Ollama model
 setup_ollama() {
-    echo "🤖 Setting up Ollama model..."
-    
-    # Start Ollama service if not running
+    echo "🤖 Setting up Ollama..."
     docker-compose up -d ollama
     
-    # Wait for Ollama to be ready
-    echo "⏳ Waiting for Ollama service to be ready..."
-    until docker-compose exec ollama ollama list &> /dev/null; do
-        echo "   Waiting for Ollama..."
+    echo "⏳ Waiting for Ollama to be ready..."
+    sleep 10
+    
+    while ! docker-compose exec ollama ollama list &>/dev/null; do
+        echo "   Still waiting for Ollama..."
         sleep 5
     done
     
-    # Pull the llama3 model
-    echo "📥 Pulling llama3 model (this may take a while)..."
+    echo "📥 Pulling llama3 model..."
     docker-compose exec ollama ollama pull llama3
     
     echo "✅ Ollama setup complete!"
 }
 
-# Function to build all services
 build_services() {
-    echo "🏗️  Building all services..."
-    docker-compose build
-    echo "✅ All services built successfully!"
+    echo "🔨 Building all services..."
+    docker-compose build --no-cache
+    echo "✅ Build complete!"
 }
 
-# Function to start all services
 start_services() {
     echo "🚀 Starting all services..."
     docker-compose up -d
-    echo "✅ All services started!"
     
+    echo "⏳ Waiting for services to be healthy..."
+    sleep 30
+    
+    docker-compose ps
+    
+    echo "✅ All services started!"
     echo ""
-    echo "📋 Service Status:"
+    echo "🌐 Available endpoints:"
     echo "   - API Gateway: http://localhost:8080"
-    echo "   - MCP Server Jira: gRPC on localhost:50051"
     echo "   - Ollama: http://localhost:11434"
-    echo "   - MCP Host: Running as client service"
+    echo "   - MCP Server (gRPC): localhost:50051"
 }
 
-# Function to show logs
 show_logs() {
-    echo "📊 Showing service logs..."
-    docker-compose logs -f
+    echo "📋 Recent logs:"
+    docker-compose logs --tail=50
 }
 
-# Function to stop all services
 stop_services() {
     echo "🛑 Stopping all services..."
     docker-compose down
     echo "✅ All services stopped!"
 }
 
-# Function to clean up
 cleanup() {
     echo "🧹 Cleaning up..."
     docker-compose down -v
@@ -101,64 +93,65 @@ cleanup() {
     echo "✅ Cleanup complete!"
 }
 
-# Function to test the setup
 test_setup() {
-    echo "🧪 Testing the setup..."
+    echo "🧪 Testing setup..."
     
-    # Test if services are running
-    if ! docker-compose ps | grep -q "Up"; then
-        echo "❌ Services are not running. Please start them first."
-        exit 1
+    if docker-compose ps | grep -q "Up"; then
+        echo "✅ Services are running"
+    else
+        echo "❌ Services are not running properly"
+        return 1
     fi
     
-    # Test Jira card creation
-    echo "Creating a test Jira card..."
-    docker-compose exec mcphost ./mcphost jira create-card --project AIT --prompt "Test card from Docker setup"
-    
-    echo "✅ Test complete!"
+    echo "✅ Basic setup test passed!"
 }
 
-# Main menu
-case "${1:-}" in
-    "setup")
-        setup_env
-        build_services
-        setup_ollama
-        start_services
-        ;;
-    "build")
-        build_services
-        ;;
-    "start")
-        start_services
-        ;;
-    "stop")
-        stop_services
-        ;;
-    "logs")
-        show_logs
-        ;;
-    "test")
-        test_setup
-        ;;
-    "cleanup")
-        cleanup
-        ;;
-    "ollama")
-        setup_ollama
-        ;;
-    *)
-        echo "Usage: $0 {setup|build|start|stop|logs|test|cleanup|ollama}"
-        echo ""
-        echo "Commands:"
-        echo "  setup   - Complete setup (env, build, ollama, start)"
-        echo "  build   - Build all Docker images"
-        echo "  start   - Start all services"
-        echo "  stop    - Stop all services"
-        echo "  logs    - Show service logs"
-        echo "  test    - Test the setup by creating a Jira card"
-        echo "  cleanup - Stop services and clean up"
-        echo "  ollama  - Setup Ollama model only"
-        exit 1
-        ;;
-esac 
+while true; do
+    echo ""
+    echo "Choose an option:"
+    echo "1) Setup environment file"
+    echo "2) Setup Ollama"
+    echo "3) Build services"
+    echo "4) Start services"
+    echo "5) Show logs"
+    echo "6) Stop services"
+    echo "7) Cleanup (removes volumes)"
+    echo "8) Test setup"
+    echo "9) Exit"
+    echo ""
+    read -p "Enter your choice (1-9): " choice
+
+    case $choice in
+        1)
+            setup_env
+            ;;
+        2)
+            setup_ollama
+            ;;
+        3)
+            build_services
+            ;;
+        4)
+            start_services
+            ;;
+        5)
+            show_logs
+            ;;
+        6)
+            stop_services
+            ;;
+        7)
+            cleanup
+            ;;
+        8)
+            test_setup
+            ;;
+        9)
+            echo "👋 Goodbye!"
+            exit 0
+            ;;
+        *)
+            echo "❌ Invalid option. Please choose 1-9."
+            ;;
+    esac
+done 

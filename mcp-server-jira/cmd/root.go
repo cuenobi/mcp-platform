@@ -51,6 +51,19 @@ func (s *server) CreateCard(ctx context.Context, req *pb.CreateCardRequest) (*pb
 	}, nil
 }
 
+func (s *server) Message(ctx context.Context, req *pb.MessageRequest) (*pb.MessageResponse, error) {
+	log.Printf("Message called with prompt: %s", req.Prompt)
+
+	response, err := jira.ReceivePrompt(req.Prompt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.MessageResponse{
+		Message: response,
+	}, nil
+}
+
 var rootCmd = &cobra.Command{
 	Use:   "mcp-server-jira",
 	Short: "Run Jira gRPC server",

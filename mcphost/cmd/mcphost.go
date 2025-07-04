@@ -41,6 +41,20 @@ var jiraCreateCmd = &cobra.Command{
 	},
 }
 
+var messageCmd = &cobra.Command{
+	Use:   "message",
+	Short: "Send message to MCP server",
+	Run: func(cmd *cobra.Command, args []string) {
+		svc := jira.NewService()
+		message, err := svc.Message(prompt)
+		if err != nil {
+			fmt.Printf("error sending message: %v\n", err)
+			return
+		}
+		fmt.Printf("Message: %s\n", message)
+	},
+}
+
 func init() {
 	jiraSyncCmd.Flags().StringVarP(&project, "project", "p", "", "Jira project key")
 	_ = jiraSyncCmd.MarkFlagRequired("project")
@@ -51,6 +65,10 @@ func init() {
 	_ = jiraCreateCmd.MarkFlagRequired("project")
 	_ = jiraCreateCmd.MarkFlagRequired("prompt")
 
+	messageCmd.Flags().StringVarP(&prompt, "prompt", "", "", "Prompt to send to MCP server")
+	_ = messageCmd.MarkFlagRequired("prompt")
+
 	jiraCmd.AddCommand(jiraCreateCmd)
+	jiraCmd.AddCommand(messageCmd)
 	rootCmd.AddCommand(jiraCmd)
 }
