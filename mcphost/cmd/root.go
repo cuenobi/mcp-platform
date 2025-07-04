@@ -1,18 +1,15 @@
 package cmd
 
-import (
-    "github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 var rootCmd = &cobra.Command{
-    Use:   "mcphost",
-    Short: "MCP CLI Host to connect to MCP Servers",
+	Use:   "mcphost",
+	Short: "MCPhost CLI",
 }
 
-func Execute() {
-    cobra.CheckErr(rootCmd.Execute())
+func Execute() error {
+	return rootCmd.Execute()
 }
 
 func init() {
-    rootCmd.AddCommand(jiraCmd)
 }

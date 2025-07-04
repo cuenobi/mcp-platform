@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	pb "github.com/cuenobi/mcp-platform/shared/proto"
+	pb "github.com/cuenobi/mcp-platform/shared/proto/gen"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
